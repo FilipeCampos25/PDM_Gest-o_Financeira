@@ -6,8 +6,10 @@
     "start": "expo start"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "latest",
     "@react-navigation/native": "latest",
     "@react-navigation/native-stack": "latest",
+    "axios": "latest",
     "expo": "latest",
     "react": "latest",
     "react-native": "latest",
