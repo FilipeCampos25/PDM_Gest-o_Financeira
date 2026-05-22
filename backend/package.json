@@ -9,9 +9,12 @@
   },
   "dependencies": {
     "@prisma/client": "latest",
+    "bcryptjs": "latest",
     "cors": "latest",
     "dotenv": "latest",
-    "express": "latest"
+    "express": "latest",
+    "jsonwebtoken": "latest",
+    "zod": "latest"
   },
   "devDependencies": {
     "prisma": "latest"
