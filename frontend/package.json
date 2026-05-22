@@ -4,5 +4,14 @@
   "main": "App.js",
   "scripts": {
     "start": "expo start"
+  },
+  "dependencies": {
+    "@react-navigation/native": "latest",
+    "@react-navigation/native-stack": "latest",
+    "expo": "latest",
+    "react": "latest",
+    "react-native": "latest",
+    "react-native-safe-area-context": "latest",
+    "react-native-screens": "latest"
   }
 }
