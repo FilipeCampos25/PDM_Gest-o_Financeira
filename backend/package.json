@@ -8,7 +8,7 @@
     "prisma:seed": "node prisma/seed.js"
   },
   "dependencies": {
-    "@prisma/client": "latest",
+    "@prisma/client": "^6.19.3",
     "bcryptjs": "latest",
     "cors": "latest",
     "dotenv": "latest",
@@ -17,7 +17,7 @@
     "zod": "latest"
   },
   "devDependencies": {
-    "prisma": "latest"
+    "prisma": "^6.19.3"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

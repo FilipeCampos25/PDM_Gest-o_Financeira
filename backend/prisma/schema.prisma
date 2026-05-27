@@ -20,7 +20,7 @@ model User {
 
 model Category {
   id           String        @id @default(uuid())
-  name         String        @unique
+  name         String
   displayName  String
   icon         String
   background   String
@@ -33,6 +33,7 @@ model Category {
   transactions Transaction[]
 
   @@index([userId])
+  @@unique([userId, name])
 }
 
 model Transaction {

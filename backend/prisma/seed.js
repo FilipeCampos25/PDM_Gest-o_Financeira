@@ -1,4 +1,9 @@
+const path = require("path");
+const dotenv = require("dotenv");
 const { PrismaClient } = require("@prisma/client");
+
+dotenv.config({ path: path.resolve(__dirname, "../.env"), quiet: true });
+dotenv.config({ path: path.resolve(__dirname, "../../.env"), quiet: true });
 
 const prisma = new PrismaClient();
 
@@ -47,12 +52,26 @@ const defaultCategories = [
 
 async function main() {
   for (const category of defaultCategories) {
-    await prisma.category.upsert({
+    const existingCategory = await prisma.category.findFirst({
       where: {
-        name: category.name
-      },
-      update: category,
-      create: category
+        name: category.name,
+        isDefault: true,
+        userId: null
+      }
+    });
+
+    if (existingCategory) {
+      await prisma.category.update({
+        where: {
+          id: existingCategory.id
+        },
+        data: category
+      });
+      continue;
+    }
+
+    await prisma.category.create({
+      data: category
     });
   }
 }

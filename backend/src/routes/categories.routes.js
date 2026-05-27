@@ -47,6 +47,19 @@ categoriesRoutes.get("/", async (request, response) => {
 categoriesRoutes.post("/", validate(createCategorySchema), async (request, response) => {
   const { name, displayName, icon, background, isIncome } = request.body;
 
+  const categoryAlreadyExists = await prisma.category.findFirst({
+    where: {
+      name,
+      userId: request.user.id
+    }
+  });
+
+  if (categoryAlreadyExists) {
+    return response.status(409).json({
+      error: "Categoria customizada ja cadastrada"
+    });
+  }
+
   const category = await prisma.category.create({
     data: {
       name,
@@ -75,6 +88,21 @@ categoriesRoutes.put("/:id", validate(updateCategorySchema), async (request, res
     return response.status(404).json({
       error: "Categoria não encontrada"
     });
+  }
+
+  if (request.body.name && request.body.name !== category.name) {
+    const categoryAlreadyExists = await prisma.category.findFirst({
+      where: {
+        name: request.body.name,
+        userId: request.user.id
+      }
+    });
+
+    if (categoryAlreadyExists) {
+      return response.status(409).json({
+        error: "Categoria customizada ja cadastrada"
+      });
+    }
   }
 
   const updatedCategory = await prisma.category.update({
