@@ -26,7 +26,11 @@ export default function AppRoutes() {
     <Stack.Navigator screenOptions={{ headerBackTitleVisible: false }}>
       {isAuthenticated ? (
         <>
-          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen
+            name="Home"
+            component={HomeScreen}
+            options={{ title: "Inicio" }}
+          />
           <Stack.Screen
             name="Transactions"
             component={TransactionsScreen}
