@@ -12,15 +12,19 @@ import {
 
 import { useAuth } from "../contexts/AuthContext";
 
-function validateForm({ email, password }) {
+function validateForm({ name, email, password }) {
   const nextErrors = {};
+
+  if (!name.trim()) {
+    nextErrors.name = "Informe seu nome.";
+  }
 
   if (!email.trim()) {
     nextErrors.email = "Informe o email.";
   }
 
-  if (!password) {
-    nextErrors.password = "Informe a senha.";
+  if (password.length < 6) {
+    nextErrors.password = "A senha deve ter no minimo 6 caracteres.";
   }
 
   return nextErrors;
@@ -30,13 +34,23 @@ function getRequestErrorMessage(error, fallbackMessage) {
   return error.response?.data?.error || fallbackMessage;
 }
 
-export default function LoginScreen({ navigation }) {
-  const { signIn } = useAuth();
+export default function RegisterScreen({ navigation }) {
+  const { signUp } = useAuth();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  function handleNameChange(value) {
+    setName(value);
+    setErrors((currentErrors) => ({
+      ...currentErrors,
+      name: undefined
+    }));
+    setSubmitError("");
+  }
 
   function handleEmailChange(value) {
     setEmail(value);
@@ -58,6 +72,7 @@ export default function LoginScreen({ navigation }) {
 
   async function handleSubmit() {
     const payload = {
+      name: name.trim(),
       email: email.trim().toLowerCase(),
       password
     };
@@ -73,9 +88,11 @@ export default function LoginScreen({ navigation }) {
       setErrors({});
       setSubmitError("");
 
-      await signIn(payload);
+      await signUp(payload);
     } catch (error) {
-      setSubmitError(getRequestErrorMessage(error, "Nao foi possivel entrar."));
+      setSubmitError(
+        getRequestErrorMessage(error, "Nao foi possivel concluir o cadastro.")
+      );
     } finally {
       setLoading(false);
     }
@@ -87,10 +104,24 @@ export default function LoginScreen({ navigation }) {
       style={styles.container}
     >
       <View style={styles.card}>
-        <Text style={styles.title}>Entrar</Text>
-        <Text style={styles.subtitle}>Acesse sua conta para continuar.</Text>
+        <Text style={styles.title}>Criar conta</Text>
+        <Text style={styles.subtitle}>Cadastre-se para acessar o app.</Text>
 
         {!!submitError && <Text style={styles.submitError}>{submitError}</Text>}
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Nome</Text>
+          <TextInput
+            autoCorrect={false}
+            editable={!loading}
+            onChangeText={handleNameChange}
+            placeholder="Seu nome"
+            placeholderTextColor="#7a8480"
+            style={[styles.input, errors.name ? styles.inputError : null]}
+            value={name}
+          />
+          {!!errors.name && <Text style={styles.fieldError}>{errors.name}</Text>}
+        </View>
 
         <View style={styles.field}>
           <Text style={styles.label}>Email</Text>
@@ -115,7 +146,7 @@ export default function LoginScreen({ navigation }) {
             autoCorrect={false}
             editable={!loading}
             onChangeText={handlePasswordChange}
-            placeholder="Digite sua senha"
+            placeholder="Crie uma senha"
             placeholderTextColor="#7a8480"
             secureTextEntry
             style={[styles.input, errors.password ? styles.inputError : null]}
@@ -137,18 +168,16 @@ export default function LoginScreen({ navigation }) {
           {loading ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
-            <Text style={styles.primaryButtonText}>Entrar</Text>
+            <Text style={styles.primaryButtonText}>Cadastrar</Text>
           )}
         </Pressable>
 
         <Pressable
           disabled={loading}
-          onPress={() => navigation.replace("Register")}
+          onPress={() => navigation.replace("Login")}
           style={styles.secondaryAction}
         >
-          <Text style={styles.secondaryActionText}>
-            Nao tem conta? Cadastre-se
-          </Text>
+          <Text style={styles.secondaryActionText}>Ja tenho conta</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
