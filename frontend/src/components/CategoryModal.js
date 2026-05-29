@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { MaterialIcons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -12,36 +13,53 @@ import {
   View
 } from "react-native";
 
+import { CATEGORY_COLOR_OPTIONS } from "../constants/categoryColors";
+import { CATEGORY_ICON_OPTIONS } from "../constants/categoryIcons";
+
 function buildInitialValues(category) {
   return {
     name: category?.name || "",
     displayName: category?.displayName || "",
-    icon: category?.icon || "",
-    background: category?.background || "",
+    icon: category?.icon || CATEGORY_ICON_OPTIONS[0].value,
+    background: category?.background || CATEGORY_COLOR_OPTIONS[0].value,
     isIncome: category?.isIncome === true
   };
 }
 
 function validateFormValues(values) {
   const nextErrors = {};
+  const normalizedName = normalizeInternalName(values.name);
+  const normalizedDisplayName = normalizeDisplayText(values.displayName);
 
-  if (!values.name.trim()) {
+  if (!normalizedName) {
     nextErrors.name = "Informe o nome interno.";
   }
 
-  if (!values.displayName.trim()) {
+  if (!normalizedDisplayName) {
     nextErrors.displayName = "Informe o nome de exibicao.";
   }
 
-  if (!values.icon.trim()) {
-    nextErrors.icon = "Informe um icone.";
+  if (!values.icon) {
+    nextErrors.icon = "Selecione um icone.";
   }
 
-  if (!values.background.trim()) {
-    nextErrors.background = "Informe uma cor de fundo.";
+  if (!values.background) {
+    nextErrors.background = "Selecione uma cor.";
   }
 
   return nextErrors;
+}
+
+function normalizeInternalName(value) {
+  return value
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9_-]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function normalizeDisplayText(value) {
+  return value.replace(/\s+/g, " ").trim();
 }
 
 export default function CategoryModal({
@@ -84,10 +102,10 @@ export default function CategoryModal({
     }
 
     onSave?.({
-      name: formValues.name.trim(),
-      displayName: formValues.displayName.trim(),
-      icon: formValues.icon.trim(),
-      background: formValues.background.trim(),
+      name: normalizeInternalName(formValues.name),
+      displayName: normalizeDisplayText(formValues.displayName),
+      icon: formValues.icon,
+      background: formValues.background,
       isIncome: formValues.isIncome
     });
   }
@@ -136,7 +154,11 @@ export default function CategoryModal({
                   { backgroundColor: formValues.background || "#9aa8a0" }
                 ]}
               >
-                <Text style={styles.previewIconText}>{formValues.icon || "?"}</Text>
+                <MaterialIcons
+                  color="#ffffff"
+                  name={formValues.icon || "category"}
+                  size={24}
+                />
               </View>
               <View style={styles.previewTextGroup}>
                 <Text style={styles.previewName}>
@@ -153,6 +175,9 @@ export default function CategoryModal({
               <TextInput
                 autoCapitalize="none"
                 editable={!submitting}
+                onBlur={() =>
+                  handleFieldChange("name", normalizeInternalName(formValues.name))
+                }
                 onChangeText={(value) => handleFieldChange("name", value)}
                 placeholder="ex: mercado"
                 placeholderTextColor="#7a8480"
@@ -166,6 +191,12 @@ export default function CategoryModal({
               <Text style={styles.label}>Nome de exibicao</Text>
               <TextInput
                 editable={!submitting}
+                onBlur={() =>
+                  handleFieldChange(
+                    "displayName",
+                    normalizeDisplayText(formValues.displayName)
+                  )
+                }
                 onChangeText={(value) => handleFieldChange("displayName", value)}
                 placeholder="Ex: Mercado"
                 placeholderTextColor="#7a8480"
@@ -182,31 +213,90 @@ export default function CategoryModal({
 
             <View style={styles.field}>
               <Text style={styles.label}>Icone</Text>
-              <TextInput
-                editable={!submitting}
-                onChangeText={(value) => handleFieldChange("icon", value)}
-                placeholder="Ex: cart"
-                placeholderTextColor="#7a8480"
-                style={[styles.input, errors.icon ? styles.inputError : null]}
-                value={formValues.icon}
-              />
+              <View
+                style={[
+                  styles.iconGrid,
+                  errors.icon ? styles.inputError : null
+                ]}
+              >
+                {CATEGORY_ICON_OPTIONS.map((iconOption) => {
+                  const isSelected = formValues.icon === iconOption.value;
+
+                  return (
+                    <Pressable
+                      disabled={submitting}
+                      key={iconOption.value}
+                      onPress={() => handleFieldChange("icon", iconOption.value)}
+                      style={({ pressed }) => [
+                        styles.iconOption,
+                        isSelected ? styles.iconOptionSelected : null,
+                        pressed ? styles.buttonPressed : null
+                      ]}
+                    >
+                      <MaterialIcons
+                        color={isSelected ? "#1c7c54" : "#203229"}
+                        name={iconOption.value}
+                        size={20}
+                      />
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.iconOptionText,
+                          isSelected ? styles.iconOptionTextSelected : null
+                        ]}
+                      >
+                        {iconOption.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
               {!!errors.icon && <Text style={styles.fieldError}>{errors.icon}</Text>}
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Background</Text>
-              <TextInput
-                autoCapitalize="none"
-                editable={!submitting}
-                onChangeText={(value) => handleFieldChange("background", value)}
-                placeholder="#1c7c54"
-                placeholderTextColor="#7a8480"
+              <Text style={styles.label}>Cor</Text>
+              <View
                 style={[
-                  styles.input,
+                  styles.colorGrid,
                   errors.background ? styles.inputError : null
                 ]}
-                value={formValues.background}
-              />
+              >
+                {CATEGORY_COLOR_OPTIONS.map((colorOption) => {
+                  const isSelected = formValues.background === colorOption.value;
+
+                  return (
+                    <Pressable
+                      disabled={submitting}
+                      key={colorOption.value}
+                      onPress={() =>
+                        handleFieldChange("background", colorOption.value)
+                      }
+                      style={({ pressed }) => [
+                        styles.colorOption,
+                        isSelected ? styles.colorOptionSelected : null,
+                        pressed ? styles.buttonPressed : null
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.colorSwatch,
+                          { backgroundColor: colorOption.value }
+                        ]}
+                      />
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.colorOptionText,
+                          isSelected ? styles.colorOptionTextSelected : null
+                        ]}
+                      >
+                        {colorOption.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
               {!!errors.background && (
                 <Text style={styles.fieldError}>{errors.background}</Text>
               )}
@@ -358,11 +448,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
     width: 44
   },
-  previewIconText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "800"
-  },
   previewTextGroup: {
     flex: 1
   },
@@ -402,6 +487,83 @@ const styles = StyleSheet.create({
     color: "#b3261e",
     fontSize: 13,
     marginTop: 6
+  },
+  iconGrid: {
+    backgroundColor: "#f6f8f7",
+    borderColor: "#d5ddd8",
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    padding: 8
+  },
+  iconOption: {
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderColor: "#e0e7e2",
+    borderRadius: 10,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 8,
+    minHeight: 42,
+    paddingHorizontal: 10,
+    width: "48%"
+  },
+  iconOptionSelected: {
+    backgroundColor: "#e9f5ee",
+    borderColor: "#1c7c54"
+  },
+  iconOptionText: {
+    color: "#203229",
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "700"
+  },
+  iconOptionTextSelected: {
+    color: "#1c7c54"
+  },
+  colorGrid: {
+    backgroundColor: "#f6f8f7",
+    borderColor: "#d5ddd8",
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    padding: 8
+  },
+  colorOption: {
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderColor: "#e0e7e2",
+    borderRadius: 10,
+    borderWidth: 1,
+    flexDirection: "row",
+    minHeight: 42,
+    paddingHorizontal: 10,
+    width: "48%"
+  },
+  colorOptionSelected: {
+    backgroundColor: "#e9f5ee",
+    borderColor: "#1c7c54"
+  },
+  colorSwatch: {
+    borderColor: "#ffffff",
+    borderRadius: 8,
+    borderWidth: 1,
+    height: 18,
+    marginRight: 8,
+    width: 18
+  },
+  colorOptionText: {
+    color: "#203229",
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "700"
+  },
+  colorOptionTextSelected: {
+    color: "#1c7c54"
   },
   typeSelector: {
     backgroundColor: "#f6f8f7",

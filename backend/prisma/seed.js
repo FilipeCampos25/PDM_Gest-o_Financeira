@@ -12,15 +12,15 @@ const defaultCategories = [
     name: "income",
     displayName: "Receita",
     icon: "attach-money",
-    background: "#B7F7C1",
+    background: "#1c7c54",
     isIncome: true,
     isDefault: true
   },
   {
     name: "food",
-    displayName: "Alimentação",
+    displayName: "Alimentacao",
     icon: "restaurant",
-    background: "#FFD6A5",
+    background: "#d99a21",
     isIncome: false,
     isDefault: true
   },
@@ -28,7 +28,7 @@ const defaultCategories = [
     name: "transport",
     displayName: "Transporte",
     icon: "directions-car",
-    background: "#A0C4FF",
+    background: "#2f6db3",
     isIncome: false,
     isDefault: true
   },
@@ -36,15 +36,15 @@ const defaultCategories = [
     name: "leisure",
     displayName: "Lazer",
     icon: "sports-esports",
-    background: "#FFC6FF",
+    background: "#6d5bd0",
     isIncome: false,
     isDefault: true
   },
   {
     name: "education",
-    displayName: "Educação",
+    displayName: "Educacao",
     icon: "school",
-    background: "#CAFFBF",
+    background: "#00838f",
     isIncome: false,
     isDefault: true
   }

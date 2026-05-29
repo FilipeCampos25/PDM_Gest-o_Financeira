@@ -1,9 +1,10 @@
+import { registerRootComponent } from "expo";
 import { NavigationContainer } from "@react-navigation/native";
 
 import { AuthProvider } from "./src/contexts/AuthContext";
 import AppRoutes from "./src/routes/AppRoutes";
 
-export default function App() {
+function App() {
   return (
     <AuthProvider>
       <NavigationContainer>
@@ -12,3 +13,7 @@ export default function App() {
     </AuthProvider>
   );
 }
+
+registerRootComponent(App);
+
+export default App;

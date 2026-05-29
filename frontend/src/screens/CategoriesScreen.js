@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useIsFocused } from "@react-navigation/native";
+import { MaterialIcons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
   Alert,
@@ -13,6 +14,8 @@ import {
 
 import api from "../api/client";
 import CategoryModal from "../components/CategoryModal";
+import { getCategoryColorLabel } from "../constants/categoryColors";
+import { getCategoryIconLabel } from "../constants/categoryIcons";
 
 const DEFAULT_CATEGORY_DELETE_MESSAGE =
   "Categorias padrão não podem ser excluídas";
@@ -36,7 +39,11 @@ function CategoryCard({
             { backgroundColor: category.background || "#9aa8a0" }
           ]}
         >
-          <Text style={styles.categoryIconText}>{category.icon || "?"}</Text>
+          <MaterialIcons
+            color="#ffffff"
+            name={category.icon || "category"}
+            size={24}
+          />
         </View>
 
         <View style={styles.categoryTitleGroup}>
@@ -49,7 +56,7 @@ function CategoryCard({
 
       <View style={styles.detailsGrid}>
         <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Background</Text>
+          <Text style={styles.detailLabel}>Cor</Text>
           <View style={styles.backgroundRow}>
             <View
               style={[
@@ -57,8 +64,15 @@ function CategoryCard({
                 { backgroundColor: category.background || "#9aa8a0" }
               ]}
             />
-            <Text style={styles.detailValue}>{category.background || "-"}</Text>
+            <Text style={styles.detailValue}>
+              {getCategoryColorLabel(category.background)}
+            </Text>
           </View>
+        </View>
+
+        <View style={styles.detailItem}>
+          <Text style={styles.detailLabel}>Icone</Text>
+          <Text style={styles.detailValue}>{getCategoryIconLabel(category.icon)}</Text>
         </View>
 
         <View style={styles.detailItem}>
@@ -270,8 +284,8 @@ export default function CategoriesScreen() {
             <View style={styles.hero}>
               <Text style={styles.title}>Categorias</Text>
               <Text style={styles.subtitle}>
-                Gerencie categorias customizadas e consulte as categorias padrao
-                disponiveis.
+                Adicione, edite ou exclua categorias customizadas. As categorias
+                padrao ficam protegidas.
               </Text>
             </View>
 
@@ -420,11 +434,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 12,
     width: 46
-  },
-  categoryIconText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "800"
   },
   categoryTitleGroup: {
     flex: 1

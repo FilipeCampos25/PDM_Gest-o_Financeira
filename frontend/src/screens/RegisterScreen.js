@@ -34,6 +34,14 @@ function getRequestErrorMessage(error, fallbackMessage) {
   return error.response?.data?.error || fallbackMessage;
 }
 
+function normalizeName(value) {
+  return value
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 export default function RegisterScreen({ navigation }) {
   const { signUp } = useAuth();
   const [name, setName] = useState("");
@@ -72,7 +80,7 @@ export default function RegisterScreen({ navigation }) {
 
   async function handleSubmit() {
     const payload = {
-      name: name.trim(),
+      name: normalizeName(name),
       email: email.trim().toLowerCase(),
       password
     };
@@ -114,6 +122,7 @@ export default function RegisterScreen({ navigation }) {
           <TextInput
             autoCorrect={false}
             editable={!loading}
+            onBlur={() => setName((currentName) => normalizeName(currentName))}
             onChangeText={handleNameChange}
             placeholder="Seu nome"
             placeholderTextColor="#7a8480"

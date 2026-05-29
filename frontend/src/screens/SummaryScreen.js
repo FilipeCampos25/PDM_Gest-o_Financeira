@@ -34,7 +34,7 @@ function getCurrentFilterValues() {
   const now = new Date();
 
   return {
-    month: String(now.getMonth() + 1),
+    month: String(now.getMonth() + 1).padStart(2, "0"),
     year: String(now.getFullYear())
   };
 }
@@ -266,10 +266,16 @@ export default function SummaryScreen() {
       return;
     }
 
-    setAppliedFilter({
+    const normalizedFilter = {
       month: Number(filterValues.month),
       year: Number(filterValues.year)
+    };
+
+    setFilterValues({
+      month: String(normalizedFilter.month).padStart(2, "0"),
+      year: String(normalizedFilter.year)
     });
+    setAppliedFilter(normalizedFilter);
   }
 
   function handleClearFilter() {
@@ -305,8 +311,9 @@ export default function SummaryScreen() {
             <Text style={styles.fieldLabel}>Mes</Text>
             <TextInput
               keyboardType="number-pad"
+              maxLength={2}
               onChangeText={handleMonthChange}
-              placeholder="4"
+              placeholder="04"
               placeholderTextColor="#7a8480"
               style={styles.input}
               value={filterValues.month}
@@ -317,6 +324,7 @@ export default function SummaryScreen() {
             <Text style={styles.fieldLabel}>Ano</Text>
             <TextInput
               keyboardType="number-pad"
+              maxLength={4}
               onChangeText={handleYearChange}
               placeholder="2026"
               placeholderTextColor="#7a8480"

@@ -14,11 +14,28 @@ import {
 
 import api from "../api/client";
 
+const MONTH_LABELS = [
+  "Janeiro",
+  "Fevereiro",
+  "Marco",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro"
+];
+
+const WEEKDAY_LABELS = ["D", "S", "T", "Q", "Q", "S", "S"];
+
 function getRequestErrorMessage(error, fallbackMessage) {
   return error.response?.data?.error || fallbackMessage;
 }
 
-function formatInputDate(value) {
+function formatIsoDate(value) {
   if (!value) {
     return "";
   }
@@ -32,6 +49,17 @@ function formatInputDate(value) {
   return date.toISOString().slice(0, 10);
 }
 
+function formatDisplayDate(value) {
+  const isoDate = formatIsoDate(value);
+
+  if (!isoDate) {
+    return "";
+  }
+
+  const [year, month, day] = isoDate.split("-");
+  return `${day}/${month}/${year}`;
+}
+
 function normalizeCurrencyInput(value) {
   const trimmedValue = value.trim();
 
@@ -43,28 +71,113 @@ function normalizeCurrencyInput(value) {
     return Number(trimmedValue.replace(/\./g, "").replace(",", "."));
   }
 
+  if (/^\d{1,3}(\.\d{3})+$/.test(trimmedValue)) {
+    return Number(trimmedValue.replace(/\./g, ""));
+  }
+
   return Number(trimmedValue.replace(",", "."));
 }
 
-function isValidDateInput(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+function formatCurrencyInput(value) {
+  const parsedValue = normalizeCurrencyInput(value);
+
+  if (Number.isNaN(parsedValue)) {
+    return value;
+  }
+
+  return new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(parsedValue);
+}
+
+function normalizeDateInput(value) {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return "";
+  }
+
+  const isoMatch = trimmedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (isoMatch) {
+    return trimmedValue;
+  }
+
+  const brMatch = trimmedValue.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+
+  if (brMatch) {
+    const [, day, month, year] = brMatch;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+
+  const digits = trimmedValue.replace(/\D/g, "");
+
+  if (digits.length === 8) {
+    if (digits.startsWith("19") || digits.startsWith("20")) {
+      return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+    }
+
+    return `${digits.slice(4, 8)}-${digits.slice(2, 4)}-${digits.slice(0, 2)}`;
+  }
+
+  return trimmedValue;
+}
+
+function isValidIsoDate(value) {
+  const normalizedValue = normalizeDateInput(value);
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
     return false;
   }
 
-  const date = new Date(`${value}T00:00:00.000Z`);
+  const date = new Date(`${normalizedValue}T00:00:00.000Z`);
 
   if (Number.isNaN(date.getTime())) {
     return false;
   }
 
-  return date.toISOString().slice(0, 10) === value;
+  return date.toISOString().slice(0, 10) === normalizedValue;
+}
+
+function normalizeText(value) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function getCalendarMonth(value) {
+  const isoDate = formatIsoDate(value);
+  const date = isoDate ? new Date(`${isoDate}T00:00:00.000Z`) : new Date();
+
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+}
+
+function buildCalendarDays(monthDate) {
+  const year = monthDate.getUTCFullYear();
+  const month = monthDate.getUTCMonth();
+  const firstWeekday = new Date(Date.UTC(year, month, 1)).getUTCDay();
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const days = [];
+
+  for (let index = 0; index < firstWeekday; index += 1) {
+    days.push(null);
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    days.push(new Date(Date.UTC(year, month, day)));
+  }
+
+  while (days.length % 7 !== 0) {
+    days.push(null);
+  }
+
+  return days;
 }
 
 function buildInitialValues(transaction) {
   return {
     description: transaction?.description || "",
     value: transaction?.value ? String(transaction.value) : "",
-    date: formatInputDate(transaction?.date),
+    date: formatDisplayDate(transaction?.date),
     categoryId: transaction?.categoryId || transaction?.category?.id || ""
   };
 }
@@ -81,8 +194,8 @@ function validateFormValues(values) {
     nextErrors.value = "Informe um valor maior que zero.";
   }
 
-  if (!isValidDateInput(values.date)) {
-    nextErrors.date = "Use uma data valida no formato YYYY-MM-DD.";
+  if (!isValidIsoDate(values.date)) {
+    nextErrors.date = "Informe uma data valida.";
   }
 
   if (!values.categoryId) {
@@ -105,6 +218,8 @@ export default function TransactionModal({
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [categoriesError, setCategoriesError] = useState("");
+  const [calendarVisible, setCalendarVisible] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(getCalendarMonth(transaction?.date));
 
   useEffect(() => {
     if (!visible) {
@@ -113,6 +228,8 @@ export default function TransactionModal({
 
     setFormValues(buildInitialValues(transaction));
     setErrors({});
+    setCalendarVisible(false);
+    setCalendarMonth(getCalendarMonth(transaction?.date));
   }, [transaction, visible]);
 
   useEffect(() => {
@@ -166,6 +283,7 @@ export default function TransactionModal({
 
   function handleSubmit() {
     const nextErrors = validateFormValues(formValues);
+    const normalizedDate = normalizeDateInput(formValues.date);
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
@@ -173,12 +291,52 @@ export default function TransactionModal({
     }
 
     onSave?.({
-      description: formValues.description.trim(),
+      description: normalizeText(formValues.description),
       value: normalizeCurrencyInput(formValues.value),
-      date: formValues.date,
+      date: normalizedDate,
       categoryId: formValues.categoryId
     });
   }
+
+  function handleValueBlur() {
+    if (!formValues.value.trim()) {
+      return;
+    }
+
+    handleFieldChange("value", formatCurrencyInput(formValues.value));
+  }
+
+  function handleDateBlur() {
+    const normalizedDate = normalizeDateInput(formValues.date);
+
+    if (!isValidIsoDate(normalizedDate)) {
+      return;
+    }
+
+    handleFieldChange("date", formatDisplayDate(normalizedDate));
+    setCalendarMonth(getCalendarMonth(normalizedDate));
+  }
+
+  function handleSelectCalendarDate(date) {
+    const isoDate = formatIsoDate(date.toISOString());
+
+    handleFieldChange("date", formatDisplayDate(isoDate));
+    setCalendarMonth(getCalendarMonth(isoDate));
+    setCalendarVisible(false);
+  }
+
+  function handleChangeCalendarMonth(offset) {
+    setCalendarMonth((currentMonth) => (
+      new Date(Date.UTC(
+        currentMonth.getUTCFullYear(),
+        currentMonth.getUTCMonth() + offset,
+        1
+      ))
+    ));
+  }
+
+  const normalizedSelectedDate = normalizeDateInput(formValues.date);
+  const calendarDays = buildCalendarDays(calendarMonth);
 
   return (
     <Modal
@@ -243,6 +401,7 @@ export default function TransactionModal({
               <TextInput
                 editable={!submitting}
                 keyboardType="decimal-pad"
+                onBlur={handleValueBlur}
                 onChangeText={(value) => handleFieldChange("value", value)}
                 placeholder="0,00"
                 placeholderTextColor="#7a8480"
@@ -254,15 +413,92 @@ export default function TransactionModal({
 
             <View style={styles.field}>
               <Text style={styles.label}>Data</Text>
-              <TextInput
-                editable={!submitting}
-                onChangeText={(value) => handleFieldChange("date", value)}
-                placeholder="2026-04-29"
-                placeholderTextColor="#7a8480"
-                style={[styles.input, errors.date ? styles.inputError : null]}
-                value={formValues.date}
-              />
+              <View style={styles.dateInputRow}>
+                <TextInput
+                  editable={!submitting}
+                  keyboardType="number-pad"
+                  onBlur={handleDateBlur}
+                  onChangeText={(value) => handleFieldChange("date", value)}
+                  placeholder="29/04/2026"
+                  placeholderTextColor="#7a8480"
+                  style={[
+                    styles.input,
+                    styles.dateInput,
+                    errors.date ? styles.inputError : null
+                  ]}
+                  value={formValues.date}
+                />
+                <Pressable
+                  disabled={submitting}
+                  onPress={() => setCalendarVisible((currentValue) => !currentValue)}
+                  style={({ pressed }) => [
+                    styles.calendarToggle,
+                    pressed ? styles.buttonPressed : null
+                  ]}
+                >
+                  <Text style={styles.calendarToggleText}>Agenda</Text>
+                </Pressable>
+              </View>
               {!!errors.date && <Text style={styles.fieldError}>{errors.date}</Text>}
+              {calendarVisible ? (
+                <View style={styles.calendar}>
+                  <View style={styles.calendarHeader}>
+                    <Pressable
+                      disabled={submitting}
+                      onPress={() => handleChangeCalendarMonth(-1)}
+                      style={styles.calendarNavButton}
+                    >
+                      <Text style={styles.calendarNavText}>{"<"}</Text>
+                    </Pressable>
+                    <Text style={styles.calendarTitle}>
+                      {MONTH_LABELS[calendarMonth.getUTCMonth()]} {calendarMonth.getUTCFullYear()}
+                    </Text>
+                    <Pressable
+                      disabled={submitting}
+                      onPress={() => handleChangeCalendarMonth(1)}
+                      style={styles.calendarNavButton}
+                    >
+                      <Text style={styles.calendarNavText}>{">"}</Text>
+                    </Pressable>
+                  </View>
+
+                  <View style={styles.weekdaysGrid}>
+                    {WEEKDAY_LABELS.map((weekday, index) => (
+                      <Text key={`${weekday}-${index}`} style={styles.weekdayText}>
+                        {weekday}
+                      </Text>
+                    ))}
+                  </View>
+
+                  <View style={styles.daysGrid}>
+                    {calendarDays.map((date, index) => {
+                      const isoDate = date ? formatIsoDate(date.toISOString()) : "";
+                      const isSelected = isoDate && isoDate === normalizedSelectedDate;
+
+                      return (
+                        <Pressable
+                          disabled={!date || submitting}
+                          key={`${isoDate || "empty"}-${index}`}
+                          onPress={() => handleSelectCalendarDate(date)}
+                          style={[
+                            styles.dayCell,
+                            isSelected ? styles.dayCellSelected : null
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.dayText,
+                              isSelected ? styles.dayTextSelected : null
+                            ]}
+                          >
+                            {date ? date.getUTCDate() : ""}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
             </View>
 
             <View style={styles.field}>
@@ -440,6 +676,94 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingHorizontal: 14,
     paddingVertical: 13
+  },
+  dateInputRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10
+  },
+  dateInput: {
+    flex: 1
+  },
+  calendarToggle: {
+    alignItems: "center",
+    backgroundColor: "#e9f5ee",
+    borderColor: "#cfe4d7",
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 50,
+    paddingHorizontal: 14
+  },
+  calendarToggleText: {
+    color: "#1c7c54",
+    fontSize: 14,
+    fontWeight: "700"
+  },
+  calendar: {
+    backgroundColor: "#ffffff",
+    borderColor: "#d5ddd8",
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: 10,
+    padding: 12
+  },
+  calendarHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10
+  },
+  calendarTitle: {
+    color: "#112018",
+    fontSize: 16,
+    fontWeight: "700"
+  },
+  calendarNavButton: {
+    alignItems: "center",
+    backgroundColor: "#f2f5f3",
+    borderRadius: 10,
+    height: 36,
+    justifyContent: "center",
+    width: 36
+  },
+  calendarNavText: {
+    color: "#203229",
+    fontSize: 18,
+    fontWeight: "700"
+  },
+  weekdaysGrid: {
+    flexDirection: "row",
+    marginBottom: 6
+  },
+  weekdayText: {
+    color: "#516059",
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "center"
+  },
+  daysGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap"
+  },
+  dayCell: {
+    alignItems: "center",
+    aspectRatio: 1,
+    justifyContent: "center",
+    width: "14.2857%"
+  },
+  dayCellSelected: {
+    backgroundColor: "#1c7c54",
+    borderRadius: 999
+  },
+  dayText: {
+    color: "#203229",
+    fontSize: 14,
+    fontWeight: "600"
+  },
+  dayTextSelected: {
+    color: "#ffffff"
   },
   inputError: {
     borderColor: "#d64545"

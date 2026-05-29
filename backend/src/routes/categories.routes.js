@@ -142,6 +142,19 @@ categoriesRoutes.delete("/:id", async (request, response) => {
     });
   }
 
+  const linkedTransactionsCount = await prisma.transaction.count({
+    where: {
+      categoryId: id,
+      userId: request.user.id
+    }
+  });
+
+  if (linkedTransactionsCount > 0) {
+    return response.status(409).json({
+      error: "Nao e possivel excluir uma categoria com transacoes vinculadas"
+    });
+  }
+
   await prisma.category.delete({
     where: {
       id
